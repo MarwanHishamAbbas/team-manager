@@ -4,6 +4,9 @@ import React, { useCallback } from 'react'
 import { Input } from '../ui/input'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { useDebouncedCallback } from '@/hooks/use-debounce'
+import TeamForm from './team-form'
+import { Button } from '../ui/button'
+import { PlusIcon } from 'lucide-react'
 
 
 const TeamSearch = () => {
@@ -37,8 +40,14 @@ const TeamSearch = () => {
 
 
     return (
-        <div>
-            <Input type="text" placeholder="Search" defaultValue={teamName} onChange={(e) => debouncedSearch(e.target.value)} />
+        <div className='mb-5 flex items-center justify-between'>
+            <Input type="text" placeholder="Search Team Name..." className='w-1/4' defaultValue={teamName} onChange={(e) => debouncedSearch(e.target.value)} />
+            <TeamForm type="create">
+                <Button className='gap-2' variant="outline">
+                    <PlusIcon className="w-4 h-4" />
+                    New Team
+                </Button>
+            </TeamForm>
         </div>
     )
 }

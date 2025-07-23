@@ -64,7 +64,7 @@ export async function getTeams(params: {
   page?: string;
   pageSize?: number;
 }) {
-  const { teamName, page = "1", pageSize = 5 } = params;
+  const { teamName, page = "1", pageSize = 10 } = params;
 
   try {
     const teams = await db

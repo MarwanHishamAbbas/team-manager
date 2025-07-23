@@ -30,12 +30,13 @@ import { ChevronDownIcon } from "lucide-react"
 
 import { createTeam, editTeam, getTeamLeads } from "@/actions/team"
 import { toast } from 'sonner'
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 
 
 
 export default function TeamForm({ type, children, teamId }: { type: 'create' | 'edit', children: ReactNode, teamId?: number | null }) {
     const [open, setOpen] = useState<boolean>(false)
+    const [popoverOpen, setPopoverOpen] = useState<boolean>(false)
     const [teamLeadFilter, setTeamLeadFilter] = useState<string>("")
     const [teamName, setTeamName] = useState<string>("")
     const [teamLeadId, setTeamLeadId] = useState<number | null>(null)
@@ -48,44 +49,120 @@ export default function TeamForm({ type, children, teamId }: { type: 'create' | 
         staleTime: 1000 * 60 * 5,
     })
 
+    // Create team mutation
+    const createTeamMutation = useMutation({
+        mutationFn: ({ name, leadId }: { name: string; leadId: number }) =>
+            createTeam(name, leadId),
+        onMutate: async ({ name, leadId }) => {
+            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+            await queryClient.cancelQueries({ queryKey: ['teams'] })
+
+            // Snapshot the previous value
+            const previousTeams = queryClient.getQueryData(['teams'])
+
+            // Get the team lead info for the optimistic update
+            const teamLead = teamLeads?.find(lead => lead.id === leadId)
+
+            // Optimistically update the cache with all current search params
+            const searchParams = new URLSearchParams(window.location.search)
+            const currentTeamName = searchParams.get('teamName') || undefined
+            const currentPage = searchParams.get('page') || '1'
+            const currentPageSize = Number(searchParams.get('pageSize')) || 10
+
+            // Create optimistic team object
+            const optimisticTeam = {
+                id: Date.now(), // Temporary ID
+                name,
+                teamLeadName: teamLead?.name || 'Unknown',
+                membersCount: 0,
+            }
+
+            // Update all possible query variations that might be active
+            queryClient.setQueryData(['teams', { teamName: currentTeamName, page: currentPage, pageSize: currentPageSize }], (old: any) => {
+                if (!old) return old
+                return {
+                    ...old,
+                    teams: [optimisticTeam, ...old.teams],
+                    totalCount: old.totalCount + 1,
+                    totalPages: Math.ceil((old.totalCount + 1) / currentPageSize)
+                }
+            })
+
+
+            // Return a context object with the snapshotted value
+            return { previousTeams, optimisticTeam }
+        },
+        onError: (error, _, context) => {
+            // If the mutation fails, use the context returned from onMutate to roll back
+            if (context?.previousTeams) {
+                queryClient.setQueryData(['teams'], context.previousTeams)
+            }
+            toast.error("Failed to create team")
+            console.error("Create team error:", error)
+        },
+        onSuccess: (data, _, context) => {
+            if (data.error) {
+                // If server returns an error, roll back the optimistic update
+                if (context?.previousTeams) {
+                    queryClient.setQueryData(['teams'], context.previousTeams)
+                }
+                toast.error(data.error)
+            } else {
+                toast.success("Team created successfully")
+                setOpen(false)
+                setTeamName("")
+                setTeamLeadId(null)
+                setTeamLeadFilter("")
+            }
+        },
+        onSettled: () => {
+            // Always refetch after error or success to ensure we have the latest data
+            queryClient.invalidateQueries({ queryKey: ['teams'] })
+        }
+    })
+
+    // Edit team mutation
+    const editTeamMutation = useMutation({
+        mutationFn: ({ name, leadId, id }: { name: string; leadId: number; id: number }) =>
+            editTeam(name, leadId, id),
+        onSuccess: (data) => {
+            if (data.error) {
+                toast.error(data.error)
+            } else {
+                toast.success("Team updated successfully")
+                queryClient.invalidateQueries({ queryKey: ['teams'] })
+                setOpen(false)
+                setTeamName("")
+                setTeamLeadId(null)
+                setTeamLeadFilter("")
+            }
+        },
+        onError: (error) => {
+            toast.error("Failed to update team")
+            console.error("Edit team error:", error)
+        }
+    })
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+
         if (!teamName || !teamLeadId) {
             toast.error("Please fill in all fields")
             return
         }
 
         if (type === 'create') {
-            const createdTeam = await createTeam(teamName, teamLeadId)
-            if (createdTeam.error) {
-                toast.error(createdTeam.error)
-            } else {
-                toast.success("Team created successfully")
-                queryClient.invalidateQueries({ queryKey: ['teams'] })
-                setOpen(false)
-                setTeamName("")
-                setTeamLeadId(null)
-            }
-        }
-        if (type === 'edit') {
+            createTeamMutation.mutate({ name: teamName, leadId: teamLeadId })
+        } else if (type === 'edit') {
             if (!teamId) {
                 toast.error("Error Getting the Team ID")
                 return
             }
-            const createdTeam = await editTeam(teamName, teamLeadId, teamId)
-            if (createdTeam.error) {
-                toast.error(createdTeam.error)
-            } else {
-                toast.success("Team created successfully")
-                queryClient.invalidateQueries({ queryKey: ['teams'] })
-                setOpen(false)
-                setTeamName("")
-                setTeamLeadId(null)
-            }
+            editTeamMutation.mutate({ name: teamName, leadId: teamLeadId, id: teamId })
         }
     }
 
+    const isLoading = createTeamMutation.isPending || editTeamMutation.isPending
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -101,21 +178,20 @@ export default function TeamForm({ type, children, teamId }: { type: 'create' | 
                         id="team-name"
                         placeholder="Team Name"
                         aria-label="Team Name"
-                        defaultValue={teamName}
                         onChange={(e) => setTeamName(e.target.value)}
+                        disabled={isLoading}
                     />
-                    <Popover >
+                    <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                         <PopoverTrigger asChild>
                             <Button
                                 variant="outline"
                                 role="combobox"
-                                aria-expanded={open}
+                                aria-expanded={popoverOpen}
                                 className="bg-background hover:bg-background border-input w-full justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]"
+                                disabled={isLoading}
                             >
                                 <span className={cn("truncate", !teamLeadFilter && "text-muted-foreground")}>
-                                    {teamLeadFilter
-                                        ? teamLeads?.find((user) => user.name === teamLeadFilter)?.name
-                                        : "Select Team Lead"}
+                                    {teamLeadFilter || "Select Team Lead"}
                                 </span>
                                 <ChevronDownIcon
                                     size={16}
@@ -133,13 +209,14 @@ export default function TeamForm({ type, children, teamId }: { type: 'create' | 
                                 <CommandList>
                                     <CommandEmpty>No team lead found.</CommandEmpty>
                                     <CommandGroup>
-                                        {teamLeads?.map((user, idx) => (
+                                        {teamLeads?.map((user) => (
                                             <CommandItem
-                                                key={idx}
+                                                key={user.id}
                                                 value={user.name}
-                                                onSelect={(currentValue) => {
-                                                    setTeamLeadFilter(currentValue === teamLeadFilter ? "" : currentValue)
+                                                onSelect={() => {
+                                                    setTeamLeadFilter(user.name)
                                                     setTeamLeadId(user.id)
+                                                    setPopoverOpen(false)
                                                 }}
                                             >
                                                 {user.name}
@@ -154,7 +231,19 @@ export default function TeamForm({ type, children, teamId }: { type: 'create' | 
                         </PopoverContent>
                     </Popover>
                     <div className="flex flex-col sm:flex-row sm:justify-end">
-                        <Button type="submit">{type === 'create' ? 'Create' : "Edit"} Team</Button>
+                        <Button
+                            type="submit"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                    {type === 'create' ? 'Creating...' : 'Updating...'}
+                                </>
+                            ) : (
+                                `${type === 'create' ? 'Create' : 'Edit'} Team`
+                            )}
+                        </Button>
                     </div>
                 </form>
             </DialogContent>

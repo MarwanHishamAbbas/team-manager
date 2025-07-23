@@ -24,7 +24,7 @@ export default function TeamListClient() {
     const searchParams = useSearchParams();
     const teamName = searchParams.get('teamName') || undefined;
     const page = searchParams.get('page') || '1';
-    const pageSize = Number(searchParams.get('pageSize')) || 5;
+    const pageSize = Number(searchParams.get('pageSize')) || 10;
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['teams', { teamName, page, pageSize }],
@@ -41,7 +41,7 @@ export default function TeamListClient() {
     }
 
     return (
-        <div>
+        <div className="my-10">
             <Table>
                 <TableHeader>
                     <TableRow className="hover:bg-transparent">
@@ -66,7 +66,7 @@ export default function TeamListClient() {
                                             <EyeIcon className="w-4 h-4" />
                                         </Button>
                                     </Link>
-                                    <TeamForm type="edit">
+                                    <TeamForm type="edit" teamId={item.id}>
                                         <Button variant="outline" size={'icon'}>
                                             <Edit3 className="w-4 h-4" />
                                         </Button>
