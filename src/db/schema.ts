@@ -11,7 +11,7 @@ export const users = pgTable("users", {
 
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
+  name: text("name").notNull().unique(),
   teamLeadId: integer("team_lead_id")
     .notNull()
     .references(() => users.id),
