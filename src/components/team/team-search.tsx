@@ -5,6 +5,7 @@ import { Input } from '../ui/input'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { useDebouncedCallback } from '@/hooks/use-debounce'
 
+
 const TeamSearch = () => {
 
     const router = useRouter()
@@ -16,6 +17,7 @@ const TeamSearch = () => {
     const createQueryString = useCallback(
         (name: string, value: string) => {
             const params = new URLSearchParams(searchParams)
+            params.delete('page')
             if (value) {
                 params.set(name, value)
             } else {
@@ -26,8 +28,11 @@ const TeamSearch = () => {
         },
         [searchParams]
     )
+
+
+
     const debouncedSearch = useDebouncedCallback((value: string) => {
-        router.push(`${pathname}?${createQueryString('teamName', value)}`)
+        router.replace(`${pathname}?${createQueryString('teamName', value)}`)
     }, 500)
 
 

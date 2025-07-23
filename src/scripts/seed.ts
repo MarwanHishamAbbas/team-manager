@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { config } from "dotenv";
 import {
   users,
   teams,
@@ -8,6 +9,9 @@ import {
   type NewTeam,
   type NewTeamMember,
 } from "../db/schema";
+
+// Load environment variables from .env file
+config();
 
 // Database connection (adjust connection string as needed)
 const connectionString =
@@ -27,151 +31,535 @@ if (!process.env.DATABASE_URL) {
 const sql = postgres(connectionString);
 const db = drizzle(sql);
 
-// Sample users with realistic roles
-const seedUsers: NewUser[] = [
-  // Team Leads
-  {
-    name: "Sarah Johnson",
-    email: "sarah.johnson@company.com",
-    role: "Engineering Manager",
-  },
-  {
-    name: "Michael Chen",
-    email: "michael.chen@company.com",
-    role: "Creative Director",
-  },
-  {
-    name: "Emily Rodriguez",
-    email: "emily.rodriguez@company.com",
-    role: "Product Manager",
-  },
-  { name: "David Kim", email: "david.kim@company.com", role: "DevOps Lead" },
-  {
-    name: "Lisa Thompson",
-    email: "lisa.thompson@company.com",
-    role: "UX Design Lead",
-  },
-
-  // Engineering Team Members
-  {
-    name: "Alex Parker",
-    email: "alex.parker@company.com",
-    role: "Senior Software Engineer",
-  },
-  {
-    name: "Jessica Wu",
-    email: "jessica.wu@company.com",
-    role: "Frontend Developer",
-  },
-  {
-    name: "Ryan Mitchell",
-    email: "ryan.mitchell@company.com",
-    role: "Backend Developer",
-  },
-  {
-    name: "Priya Sharma",
-    email: "priya.sharma@company.com",
-    role: "Full Stack Developer",
-  },
-  {
-    name: "James Wilson",
-    email: "james.wilson@company.com",
-    role: "Software Engineer",
-  },
-
-  // Creative Team Members
-  {
-    name: "Maya Patel",
-    email: "maya.patel@company.com",
-    role: "Content Creator",
-  },
-  {
-    name: "Carlos Martinez",
-    email: "carlos.martinez@company.com",
-    role: "Graphic Designer",
-  },
-  {
-    name: "Sophie Brown",
-    email: "sophie.brown@company.com",
-    role: "Social Media Manager",
-  },
-  {
-    name: "Lucas Anderson",
-    email: "lucas.anderson@company.com",
-    role: "Video Editor",
-  },
-  { name: "Zoe Taylor", email: "zoe.taylor@company.com", role: "Copywriter" },
-
-  // Product Team Members
-  {
-    name: "Kevin Lee",
-    email: "kevin.lee@company.com",
-    role: "Product Analyst",
-  },
-  {
-    name: "Rachel Green",
-    email: "rachel.green@company.com",
-    role: "Business Analyst",
-  },
-  {
-    name: "Tom Davis",
-    email: "tom.davis@company.com",
-    role: "Product Designer",
-  },
-  {
-    name: "Anna Kowalski",
-    email: "anna.kowalski@company.com",
-    role: "Technical Writer",
-  },
-
-  // DevOps Team Members
-  {
-    name: "Marcus Johnson",
-    email: "marcus.johnson@company.com",
-    role: "DevOps Engineer",
-  },
-  {
-    name: "Nina Petrov",
-    email: "nina.petrov@company.com",
-    role: "Site Reliability Engineer",
-  },
-  {
-    name: "Chris Wong",
-    email: "chris.wong@company.com",
-    role: "Cloud Architect",
-  },
-  {
-    name: "Samantha Clark",
-    email: "samantha.clark@company.com",
-    role: "Security Engineer",
-  },
-
-  // UX Design Team Members
-  {
-    name: "Oliver Jackson",
-    email: "oliver.jackson@company.com",
-    role: "UX Designer",
-  },
-  {
-    name: "Isabella Garcia",
-    email: "isabella.garcia@company.com",
-    role: "UI Designer",
-  },
-  {
-    name: "Ethan Moore",
-    email: "ethan.moore@company.com",
-    role: "UX Researcher",
-  },
-  {
-    name: "Mia Robinson",
-    email: "mia.robinson@company.com",
-    role: "Interaction Designer",
-  },
+// Helper function to generate realistic names
+const firstNames = [
+  "Sarah",
+  "Michael",
+  "Emily",
+  "David",
+  "Lisa",
+  "Alex",
+  "Jessica",
+  "Ryan",
+  "Priya",
+  "James",
+  "Maya",
+  "Carlos",
+  "Sophie",
+  "Lucas",
+  "Zoe",
+  "Kevin",
+  "Rachel",
+  "Tom",
+  "Anna",
+  "Marcus",
+  "Nina",
+  "Chris",
+  "Samantha",
+  "Oliver",
+  "Isabella",
+  "Ethan",
+  "Mia",
+  "Daniel",
+  "Emma",
+  "Noah",
+  "Olivia",
+  "Liam",
+  "Ava",
+  "William",
+  "Sophia",
+  "Mason",
+  "Charlotte",
+  "Logan",
+  "Amelia",
+  "Lucas",
+  "Harper",
+  "Alexander",
+  "Evelyn",
+  "Henry",
+  "Abigail",
+  "Jacob",
+  "Emily",
+  "Michael",
+  "Elizabeth",
+  "Benjamin",
+  "Mila",
+  "Elijah",
+  "Ella",
+  "James",
+  "Avery",
+  "Aiden",
+  "Sofia",
+  "Matthew",
+  "Camila",
+  "Jackson",
+  "Aria",
+  "Samuel",
+  "Scarlett",
+  "Sebastian",
+  "Victoria",
+  "David",
+  "Madison",
+  "Carter",
+  "Luna",
+  "Wyatt",
+  "Grace",
+  "Jayden",
+  "Chloe",
+  "John",
+  "Penelope",
+  "Owen",
+  "Layla",
+  "Dylan",
+  "Riley",
+  "Luke",
+  "Zoey",
+  "Gabriel",
+  "Nora",
+  "Anthony",
+  "Lily",
+  "Isaac",
+  "Eleanor",
+  "Grayson",
+  "Hannah",
+  "Jack",
+  "Lillian",
+  "Julian",
+  "Addison",
+  "Levi",
+  "Aubrey",
+  "Christopher",
+  "Ellie",
 ];
+
+const lastNames = [
+  "Johnson",
+  "Williams",
+  "Brown",
+  "Jones",
+  "Garcia",
+  "Miller",
+  "Davis",
+  "Rodriguez",
+  "Martinez",
+  "Hernandez",
+  "Lopez",
+  "Gonzalez",
+  "Wilson",
+  "Anderson",
+  "Thomas",
+  "Taylor",
+  "Moore",
+  "Jackson",
+  "Martin",
+  "Lee",
+  "Perez",
+  "Thompson",
+  "White",
+  "Harris",
+  "Sanchez",
+  "Clark",
+  "Ramirez",
+  "Lewis",
+  "Robinson",
+  "Walker",
+  "Young",
+  "Allen",
+  "King",
+  "Wright",
+  "Scott",
+  "Torres",
+  "Nguyen",
+  "Hill",
+  "Flores",
+  "Green",
+  "Adams",
+  "Nelson",
+  "Baker",
+  "Hall",
+  "Rivera",
+  "Campbell",
+  "Mitchell",
+  "Carter",
+  "Roberts",
+  "Gomez",
+  "Phillips",
+  "Evans",
+  "Turner",
+  "Diaz",
+  "Parker",
+  "Cruz",
+  "Edwards",
+  "Collins",
+  "Reyes",
+  "Stewart",
+  "Morris",
+  "Morales",
+  "Murphy",
+  "Cook",
+  "Rogers",
+  "Gutierrez",
+  "Ortiz",
+  "Morgan",
+  "Cooper",
+  "Peterson",
+  "Bailey",
+  "Reed",
+  "Kelly",
+  "Howard",
+  "Ramos",
+  "Kim",
+  "Cox",
+  "Ward",
+  "Richardson",
+  "Watson",
+  "Brooks",
+  "Chavez",
+  "Wood",
+  "James",
+  "Bennett",
+  "Gray",
+  "Mendoza",
+  "Ruiz",
+  "Hughes",
+  "Price",
+];
+
+const engineeringRoles = [
+  "Senior Software Engineer",
+  "Frontend Developer",
+  "Backend Developer",
+  "Full Stack Developer",
+  "Software Engineer",
+  "Lead Developer",
+  "Principal Engineer",
+  "Software Architect",
+  "Mobile Developer",
+  "Web Developer",
+  "Systems Engineer",
+  "Platform Engineer",
+  "API Developer",
+  "Database Developer",
+  "JavaScript Developer",
+  "Python Developer",
+  "Java Developer",
+  "React Developer",
+  "Node.js Developer",
+  "Go Developer",
+];
+
+const creativeRoles = [
+  "Content Creator",
+  "Graphic Designer",
+  "Social Media Manager",
+  "Video Editor",
+  "Copywriter",
+  "Brand Designer",
+  "Motion Graphics Designer",
+  "Illustrator",
+  "Art Director",
+  "Creative Writer",
+  "Content Strategist",
+  "Visual Designer",
+  "UX Writer",
+  "Marketing Designer",
+  "Digital Artist",
+  "Photographer",
+  "Content Producer",
+  "Social Media Coordinator",
+  "Brand Manager",
+  "Creative Coordinator",
+];
+
+const productRoles = [
+  "Product Analyst",
+  "Business Analyst",
+  "Product Designer",
+  "Technical Writer",
+  "Product Owner",
+  "Product Coordinator",
+  "Business Intelligence Analyst",
+  "Data Analyst",
+  "Market Research Analyst",
+  "Product Marketing Manager",
+  "Requirements Analyst",
+  "System Analyst",
+  "Quality Assurance Analyst",
+  "Product Specialist",
+  "Business Consultant",
+  "Process Analyst",
+  "Strategy Analyst",
+  "Operations Analyst",
+  "Financial Analyst",
+  "Research Analyst",
+];
+
+const devopsRoles = [
+  "DevOps Engineer",
+  "Site Reliability Engineer",
+  "Cloud Architect",
+  "Security Engineer",
+  "Infrastructure Engineer",
+  "Platform Engineer",
+  "Build Engineer",
+  "Release Engineer",
+  "Cloud Engineer",
+  "System Administrator",
+  "Network Engineer",
+  "Monitoring Engineer",
+  "Automation Engineer",
+  "CI/CD Engineer",
+  "Kubernetes Engineer",
+  "Docker Engineer",
+  "AWS Engineer",
+  "Azure Engineer",
+  "GCP Engineer",
+  "Linux Engineer",
+];
+
+const designRoles = [
+  "UX Designer",
+  "UI Designer",
+  "UX Researcher",
+  "Interaction Designer",
+  "Product Designer",
+  "Visual Designer",
+  "Service Designer",
+  "Design Systems Designer",
+  "User Researcher",
+  "Information Architect",
+  "Usability Analyst",
+  "Design Researcher",
+  "Experience Designer",
+  "Interface Designer",
+  "Design Strategist",
+  "Creative Designer",
+  "Digital Designer",
+  "Web Designer",
+  "Mobile Designer",
+  "Design Consultant",
+];
+
+const marketingRoles = [
+  "Marketing Manager",
+  "Digital Marketing Specialist",
+  "SEO Specialist",
+  "PPC Specialist",
+  "Email Marketing Manager",
+  "Growth Marketing Manager",
+  "Performance Marketing Manager",
+  "Brand Marketing Manager",
+  "Content Marketing Manager",
+  "Social Media Specialist",
+  "Marketing Analyst",
+  "Campaign Manager",
+  "Marketing Coordinator",
+  "Demand Generation Manager",
+  "Lead Generation Specialist",
+  "Conversion Rate Optimizer",
+  "Marketing Automation Specialist",
+  "Influencer Marketing Manager",
+  "Affiliate Marketing Manager",
+  "PR Specialist",
+];
+
+const salesRoles = [
+  "Sales Representative",
+  "Account Executive",
+  "Sales Manager",
+  "Business Development Manager",
+  "Sales Coordinator",
+  "Inside Sales Representative",
+  "Outside Sales Representative",
+  "Key Account Manager",
+  "Territory Manager",
+  "Regional Sales Manager",
+  "Sales Analyst",
+  "Customer Success Manager",
+  "Account Manager",
+  "Sales Operations Manager",
+  "Lead Qualification Specialist",
+  "Sales Development Representative",
+  "Enterprise Sales Manager",
+  "Channel Sales Manager",
+  "Partner Manager",
+  "Revenue Operations Manager",
+];
+
+const hrRoles = [
+  "HR Generalist",
+  "Recruiter",
+  "Talent Acquisition Specialist",
+  "HR Coordinator",
+  "People Operations Manager",
+  "Employee Relations Specialist",
+  "Compensation Analyst",
+  "Benefits Administrator",
+  "Training Coordinator",
+  "HR Business Partner",
+  "Organizational Development Specialist",
+  "Performance Management Specialist",
+  "Diversity & Inclusion Specialist",
+  "HR Information Systems Analyst",
+  "Payroll Specialist",
+  "Learning & Development Manager",
+  "Culture & Engagement Manager",
+  "HR Data Analyst",
+  "Employee Experience Manager",
+  "Workforce Planning Analyst",
+];
+
+const financeRoles = [
+  "Financial Analyst",
+  "Accountant",
+  "Senior Accountant",
+  "Accounting Manager",
+  "Finance Manager",
+  "Controller",
+  "Budget Analyst",
+  "Cost Analyst",
+  "Revenue Analyst",
+  "Investment Analyst",
+  "Risk Analyst",
+  "Credit Analyst",
+  "Treasury Analyst",
+  "Tax Specialist",
+  "Audit Specialist",
+  "Compliance Officer",
+  "Financial Planning Analyst",
+  "Business Finance Partner",
+  "Pricing Analyst",
+  "FP&A Analyst",
+];
+
+const operationsRoles = [
+  "Operations Manager",
+  "Operations Coordinator",
+  "Process Manager",
+  "Project Manager",
+  "Program Manager",
+  "Operations Analyst",
+  "Supply Chain Manager",
+  "Logistics Coordinator",
+  "Facilities Manager",
+  "Office Manager",
+  "Executive Assistant",
+  "Administrative Assistant",
+  "Operations Specialist",
+  "Workflow Manager",
+  "Efficiency Analyst",
+  "Quality Manager",
+  "Compliance Manager",
+  "Risk Manager",
+  "Vendor Manager",
+  "Contract Manager",
+];
+
+// Function to generate random user data
+function generateUsers(count: number): NewUser[] {
+  const users: NewUser[] = [];
+  const usedEmails = new Set<string>();
+
+  // Team leads (first 30 users)
+  const leadRoles = [
+    "Frontend Engineering Manager",
+    "Backend Engineering Manager",
+    "Full Stack Development Lead",
+    "Mobile Development Lead",
+    "Platform Engineering Lead",
+    "Creative Design Director",
+    "Brand Marketing Director",
+    "Content Creation Lead",
+    "Video Production Manager",
+    "Graphic Design Manager",
+    "Senior Product Manager",
+    "Product Analytics Lead",
+    "User Research Manager",
+    "Product Design Manager",
+    "Technical Writing Manager",
+    "DevOps Infrastructure Lead",
+    "Site Reliability Manager",
+    "Cloud Security Manager",
+    "Network Operations Manager",
+    "System Administration Lead",
+    "UX Research Director",
+    "UI Design Manager",
+    "Design Systems Lead",
+    "Interaction Design Lead",
+    "Service Design Manager",
+    "Digital Marketing Director",
+    "Performance Marketing Manager",
+    "SEO & Content Manager",
+    "Social Media Manager",
+    "Email Marketing Manager",
+  ];
+
+  for (let i = 0; i < 30; i++) {
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@company.com`;
+
+    if (!usedEmails.has(email)) {
+      users.push({
+        name: `${firstName} ${lastName}`,
+        email,
+        role: leadRoles[i],
+      });
+      usedEmails.add(email);
+    } else {
+      // If email collision, try with a number
+      const emailWithNumber = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${Math.floor(
+        Math.random() * 100
+      )}@company.com`;
+      users.push({
+        name: `${firstName} ${lastName}`,
+        email: emailWithNumber,
+        role: leadRoles[i],
+      });
+      usedEmails.add(emailWithNumber);
+    }
+  }
+
+  // Generate remaining users
+  const allRoles = [
+    ...engineeringRoles,
+    ...creativeRoles,
+    ...productRoles,
+    ...devopsRoles,
+    ...designRoles,
+    ...marketingRoles,
+    ...salesRoles,
+    ...hrRoles,
+    ...financeRoles,
+    ...operationsRoles,
+  ];
+
+  while (users.length < count) {
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${Math.floor(
+      Math.random() * 100
+    )}@company.com`;
+
+    if (!usedEmails.has(email)) {
+      const role = allRoles[Math.floor(Math.random() * allRoles.length)];
+      users.push({
+        name: `${firstName} ${lastName}`,
+        email,
+        role,
+      });
+      usedEmails.add(email);
+    }
+  }
+
+  return users;
+}
 
 async function seedDatabase() {
   try {
-    console.log("🌱 Starting database seeding...");
+    console.log(
+      "🌱 Starting database seeding with 200+ users across 30 teams..."
+    );
 
     // Clear existing data (in reverse order due to foreign key constraints)
     console.log("🧹 Clearing existing data...");
@@ -179,74 +567,94 @@ async function seedDatabase() {
     await db.delete(teams);
     await db.delete(users);
 
-    // Insert users
-    console.log("👥 Inserting users...");
+    // Generate and insert users
+    console.log("👥 Generating and inserting users...");
+    const seedUsers = generateUsers(200); // Generate 200 users for 30 teams
     const insertedUsers = await db.insert(users).values(seedUsers).returning();
     console.log(`✅ Inserted ${insertedUsers.length} users`);
 
     // Create teams with team leads
     console.log("🏢 Creating teams...");
-    const teamData: NewTeam[] = [
-      {
-        name: "Engineering Team",
-        teamLeadId: insertedUsers[0].id, // Sarah Johnson - Engineering Manager
-      },
-      {
-        name: "Creative Team",
-        teamLeadId: insertedUsers[1].id, // Michael Chen - Creative Director
-      },
-      {
-        name: "Product Team",
-        teamLeadId: insertedUsers[2].id, // Emily Rodriguez - Product Manager
-      },
-      {
-        name: "DevOps Team",
-        teamLeadId: insertedUsers[3].id, // David Kim - DevOps Lead
-      },
-      {
-        name: "UX Design Team",
-        teamLeadId: insertedUsers[4].id, // Lisa Thompson - UX Design Lead
-      },
+    const teamNames = [
+      "Frontend Engineering",
+      "Backend Engineering",
+      "Full Stack Development",
+      "Mobile Development",
+      "Platform Engineering",
+      "Creative Design",
+      "Brand Marketing",
+      "Content Creation",
+      "Video Production",
+      "Graphic Design",
+      "Product Management",
+      "Product Analytics",
+      "User Research",
+      "Product Design",
+      "Technical Writing",
+      "DevOps Infrastructure",
+      "Site Reliability",
+      "Cloud Security",
+      "Network Operations",
+      "System Administration",
+      "UX Research",
+      "UI Design",
+      "Design Systems",
+      "Interaction Design",
+      "Service Design",
+      "Digital Marketing",
+      "Performance Marketing",
+      "SEO & Content",
+      "Social Media",
+      "Email Marketing",
     ];
+
+    const teamData: NewTeam[] = teamNames.map((name, index) => ({
+      name,
+      teamLeadId: insertedUsers[index].id,
+    }));
 
     const insertedTeams = await db.insert(teams).values(teamData).returning();
     console.log(`✅ Created ${insertedTeams.length} teams`);
 
-    // Add team members
+    // Distribute remaining users among teams
     console.log("👨‍💼 Adding team members...");
-    const membershipData: NewTeamMember[] = [
-      // Engineering Team Members (indices 5-9)
-      { teamId: insertedTeams[0].id, userId: insertedUsers[5].id }, // Alex Parker
-      { teamId: insertedTeams[0].id, userId: insertedUsers[6].id }, // Jessica Wu
-      { teamId: insertedTeams[0].id, userId: insertedUsers[7].id }, // Ryan Mitchell
-      { teamId: insertedTeams[0].id, userId: insertedUsers[8].id }, // Priya Sharma
-      { teamId: insertedTeams[0].id, userId: insertedUsers[9].id }, // James Wilson
+    const membershipData: NewTeamMember[] = [];
+    const availableUsers = insertedUsers.slice(10); // Skip the first 10 (team leads)
 
-      // Creative Team Members (indices 10-14)
-      { teamId: insertedTeams[1].id, userId: insertedUsers[10].id }, // Maya Patel
-      { teamId: insertedTeams[1].id, userId: insertedUsers[11].id }, // Carlos Martinez
-      { teamId: insertedTeams[1].id, userId: insertedUsers[12].id }, // Sophie Brown
-      { teamId: insertedTeams[1].id, userId: insertedUsers[13].id }, // Lucas Anderson
-      { teamId: insertedTeams[1].id, userId: insertedUsers[14].id }, // Zoe Taylor
+    // Shuffle users for random distribution
+    const shuffledUsers = [...availableUsers].sort(() => Math.random() - 0.5);
 
-      // Product Team Members (indices 15-18)
-      { teamId: insertedTeams[2].id, userId: insertedUsers[15].id }, // Kevin Lee
-      { teamId: insertedTeams[2].id, userId: insertedUsers[16].id }, // Rachel Green
-      { teamId: insertedTeams[2].id, userId: insertedUsers[17].id }, // Tom Davis
-      { teamId: insertedTeams[2].id, userId: insertedUsers[18].id }, // Anna Kowalski
+    // Distribute users among teams (roughly equal distribution)
+    const usersPerTeam = Math.floor(
+      shuffledUsers.length / insertedTeams.length
+    );
+    let userIndex = 0;
 
-      // DevOps Team Members (indices 19-22)
-      { teamId: insertedTeams[3].id, userId: insertedUsers[19].id }, // Marcus Johnson
-      { teamId: insertedTeams[3].id, userId: insertedUsers[20].id }, // Nina Petrov
-      { teamId: insertedTeams[3].id, userId: insertedUsers[21].id }, // Chris Wong
-      { teamId: insertedTeams[3].id, userId: insertedUsers[22].id }, // Samantha Clark
+    insertedTeams.forEach((team, teamIndex) => {
+      const teamSize =
+        teamIndex < shuffledUsers.length % insertedTeams.length
+          ? usersPerTeam + 1
+          : usersPerTeam;
 
-      // UX Design Team Members (indices 23-26)
-      { teamId: insertedTeams[4].id, userId: insertedUsers[23].id }, // Oliver Jackson
-      { teamId: insertedTeams[4].id, userId: insertedUsers[24].id }, // Isabella Garcia
-      { teamId: insertedTeams[4].id, userId: insertedUsers[25].id }, // Ethan Moore
-      { teamId: insertedTeams[4].id, userId: insertedUsers[26].id }, // Mia Robinson
-    ];
+      for (let i = 0; i < teamSize && userIndex < shuffledUsers.length; i++) {
+        membershipData.push({
+          teamId: team.id,
+          userId: shuffledUsers[userIndex].id,
+        });
+        userIndex++;
+      }
+    });
+
+    // Add any remaining users to random teams
+    while (userIndex < shuffledUsers.length) {
+      const randomTeam =
+        insertedTeams[Math.floor(Math.random() * insertedTeams.length)];
+      membershipData.push({
+        teamId: randomTeam.id,
+        userId: shuffledUsers[userIndex].id,
+      });
+      userIndex++;
+    }
 
     await db.insert(teamMembers).values(membershipData);
     console.log(`✅ Added ${membershipData.length} team memberships`);
@@ -268,6 +676,20 @@ async function seedDatabase() {
         `  • ${team.name} (Lead: ${leadUser?.name} - ${leadUser?.role}) - ${memberCount} members`
       );
     });
+
+    // Display role distribution
+    console.log("\n📈 Role Distribution:");
+    const roleCount = insertedUsers.reduce((acc, user) => {
+      acc[user.role] = (acc[user.role] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    Object.entries(roleCount)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .forEach(([role, count]) => {
+        console.log(`  • ${role}: ${count}`);
+      });
 
     console.log("\n🎉 Database seeding completed successfully!");
   } catch (error) {

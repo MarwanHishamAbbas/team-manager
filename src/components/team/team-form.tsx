@@ -23,23 +23,24 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover"
 import { Input } from "../ui/input"
-import { useState } from "react"
+import { ReactNode, useState } from "react"
 import { cn } from "@/lib/utils"
 import { CheckIcon } from "lucide-react"
 import { ChevronDownIcon } from "lucide-react"
 
-import { createTeam, getTeamLeads } from "@/actions/team"
+import { createTeam, editTeam, getTeamLeads } from "@/actions/team"
 import { toast } from 'sonner'
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 
 
-export default function TeamForm() {
+export default function TeamForm({ type, children, teamId }: { type: 'create' | 'edit', children: ReactNode, teamId?: number | null }) {
     const [open, setOpen] = useState<boolean>(false)
     const [teamLeadFilter, setTeamLeadFilter] = useState<string>("")
     const [teamName, setTeamName] = useState<string>("")
     const [teamLeadId, setTeamLeadId] = useState<number | null>(null)
 
+    const queryClient = useQueryClient()
 
     const { data: teamLeads } = useQuery({
         queryKey: ['team-leads'],
@@ -55,35 +56,52 @@ export default function TeamForm() {
             return
         }
 
-        const createdTeam = await createTeam(teamName, teamLeadId)
-
-        if (createdTeam.error) {
-            toast.error(createdTeam.error)
-        } else {
-            toast.success("Team created successfully")
-            setOpen(false)
-            setTeamName("")
-            setTeamLeadId(null)
+        if (type === 'create') {
+            const createdTeam = await createTeam(teamName, teamLeadId)
+            if (createdTeam.error) {
+                toast.error(createdTeam.error)
+            } else {
+                toast.success("Team created successfully")
+                queryClient.invalidateQueries({ queryKey: ['teams'] })
+                setOpen(false)
+                setTeamName("")
+                setTeamLeadId(null)
+            }
         }
-
+        if (type === 'edit') {
+            if (!teamId) {
+                toast.error("Error Getting the Team ID")
+                return
+            }
+            const createdTeam = await editTeam(teamName, teamLeadId, teamId)
+            if (createdTeam.error) {
+                toast.error(createdTeam.error)
+            } else {
+                toast.success("Team created successfully")
+                queryClient.invalidateQueries({ queryKey: ['teams'] })
+                setOpen(false)
+                setTeamName("")
+                setTeamLeadId(null)
+            }
+        }
     }
 
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-                <Button>Create Team</Button>
+                {children}
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Create Team</DialogTitle>
+                    <DialogTitle>{type === 'create' ? "Create" : "Edit"} Team</DialogTitle>
                 </DialogHeader>
                 <form className="space-y-5" onSubmit={handleSubmit}>
                     <Input
                         id="team-name"
                         placeholder="Team Name"
                         aria-label="Team Name"
-                        value={teamName}
+                        defaultValue={teamName}
                         onChange={(e) => setTeamName(e.target.value)}
                     />
                     <Popover >
@@ -113,7 +131,7 @@ export default function TeamForm() {
                             <Command>
                                 <CommandInput placeholder="Search Team Lead..." />
                                 <CommandList>
-                                    <CommandEmpty>No framework found.</CommandEmpty>
+                                    <CommandEmpty>No team lead found.</CommandEmpty>
                                     <CommandGroup>
                                         {teamLeads?.map((user, idx) => (
                                             <CommandItem
@@ -136,7 +154,7 @@ export default function TeamForm() {
                         </PopoverContent>
                     </Popover>
                     <div className="flex flex-col sm:flex-row sm:justify-end">
-                        <Button type="submit">Create Team</Button>
+                        <Button type="submit">{type === 'create' ? 'Create' : "Edit"} Team</Button>
                     </div>
                 </form>
             </DialogContent>

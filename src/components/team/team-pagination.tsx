@@ -1,14 +1,44 @@
 'use client'
 
-import React from 'react'
+import React, { useCallback } from 'react'
 import { Button } from '../ui/button'
 import { Pagination, PaginationContent, PaginationItem } from '../ui/pagination'
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 
-const TeamPagination = ({ page = 1, pageSize = 5, totalPages = 1 }: { page: number, pageSize: number, totalPages: number }) => {
+const TeamPagination = ({ page = '1', pageSize = 5, totalPages = 1 }: { page: string, pageSize: number, totalPages: number }) => {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const teamName = searchParams.get('teamName')
+    const pathname = usePathname()
+
+
+    const createQueryString = useCallback(
+        (name: string, value: number) => {
+            const params = new URLSearchParams(searchParams)
+            if (value) {
+                params.set(name, value.toString())
+            } else {
+                params.delete(name)
+            }
+
+            return params
+        },
+        [searchParams]
+    )
+
+
+    const handleNextPage = () => {
+        router.replace(`${pathname}?${createQueryString('page', (parseInt(page) + 1))}`)
+    }
+
+    const handlePreviousPage = () => {
+
+        router.replace(`${pathname}?${createQueryString('page', parseInt(page) - 1)}`)
+    }
+
+
 
     return (
         <div>
@@ -18,14 +48,10 @@ const TeamPagination = ({ page = 1, pageSize = 5, totalPages = 1 }: { page: numb
                         <Button
                             variant="ghost"
                             className="group aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                            aria-disabled={page === 1 ? true : undefined}
+                            aria-disabled={parseInt(page) === 1 ? true : undefined}
                             disabled={Number(page) === 1}
-                            role={page === 1 ? "link" : undefined}
-                            onClick={() => {
-                                if (page > 1) {
-                                    router.push(`/?page=${page - 1}&pageSize=${pageSize}`)
-                                }
-                            }}
+                            role={parseInt(page) === 1 ? "link" : undefined}
+                            onClick={handlePreviousPage}
                         >
                             <ArrowLeftIcon
                                 className="-ms-1 opacity-60 transition-transform group-hover:-translate-x-0.5"
@@ -39,10 +65,8 @@ const TeamPagination = ({ page = 1, pageSize = 5, totalPages = 1 }: { page: numb
                         <Button
                             variant="ghost"
                             className="group aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                            disabled={page >= totalPages}
-                            onClick={() => {
-                                router.push(`/?page=${Number(page) + 1}&pageSize=${pageSize}`)
-                            }}
+                            disabled={parseInt(page) >= totalPages}
+                            onClick={handleNextPage}
                         >
                             Next
                             <ArrowRightIcon
@@ -55,8 +79,8 @@ const TeamPagination = ({ page = 1, pageSize = 5, totalPages = 1 }: { page: numb
                 </PaginationContent>
             </Pagination>
             <Select onValueChange={(value) => {
-                router.push(`/?page=${page}&pageSize=${value}`)
-            }} defaultValue={pageSize.toString()} aria-label="Results per page">
+                router.push(`/?page=1&pageSize=${value}${teamName ? `&teamName=${teamName}` : ""}`)
+            }} defaultValue={String(pageSize)} aria-label="Results per page">
                 <SelectTrigger
                     id="results-per-page"
                     className="w-fit whitespace-nowrap"
@@ -72,6 +96,6 @@ const TeamPagination = ({ page = 1, pageSize = 5, totalPages = 1 }: { page: numb
             </Select>
         </div>
     )
-}
 
+}
 export default TeamPagination
