@@ -1,7 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { teams } from "@/db/schema";
+import { teams, users } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export async function createTeam(name: string, teamLeadId: number) {
@@ -19,4 +20,19 @@ export async function createTeam(name: string, teamLeadId: number) {
   }
 
   return { error: "Failed to create team" };
+}
+
+export async function getTeamLeads() {
+  const teamLeads = await db
+    .selectDistinct({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      role: users.role,
+    })
+    .from(users)
+    .innerJoin(teams, eq(users.id, teams.teamLeadId))
+    .orderBy(users.name);
+
+  return teamLeads;
 }

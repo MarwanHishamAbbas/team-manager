@@ -27,17 +27,26 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { CheckIcon } from "lucide-react"
 import { ChevronDownIcon } from "lucide-react"
-import { User } from "@/db/schema"
-import { createTeam } from "@/actions/team"
+
+import { createTeam, getTeamLeads } from "@/actions/team"
 import { toast } from 'sonner'
+import { useQuery } from "@tanstack/react-query"
 
 
 
-export default function TeamForm({ teamLeads }: { teamLeads: Omit<User, 'createdAt'>[] }) {
+export default function TeamForm() {
     const [open, setOpen] = useState<boolean>(false)
     const [teamLeadFilter, setTeamLeadFilter] = useState<string>("")
     const [teamName, setTeamName] = useState<string>("")
     const [teamLeadId, setTeamLeadId] = useState<number | null>(null)
+
+
+    const { data: teamLeads } = useQuery({
+        queryKey: ['team-leads'],
+        queryFn: async () => await getTeamLeads(),
+        staleTime: 1000 * 60 * 5,
+    })
+
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
@@ -45,10 +54,8 @@ export default function TeamForm({ teamLeads }: { teamLeads: Omit<User, 'created
             toast.error("Please fill in all fields")
             return
         }
-        console.log(teamName, teamLeadId)
 
         const createdTeam = await createTeam(teamName, teamLeadId)
-        console.log(createdTeam.error)
 
         if (createdTeam.error) {
             toast.error(createdTeam.error)
@@ -60,8 +67,10 @@ export default function TeamForm({ teamLeads }: { teamLeads: Omit<User, 'created
         }
 
     }
+
+
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button>Create Team</Button>
             </DialogTrigger>
@@ -77,7 +86,7 @@ export default function TeamForm({ teamLeads }: { teamLeads: Omit<User, 'created
                         value={teamName}
                         onChange={(e) => setTeamName(e.target.value)}
                     />
-                    <Popover open={open} onOpenChange={setOpen}>
+                    <Popover >
                         <PopoverTrigger asChild>
                             <Button
                                 variant="outline"
@@ -87,7 +96,7 @@ export default function TeamForm({ teamLeads }: { teamLeads: Omit<User, 'created
                             >
                                 <span className={cn("truncate", !teamLeadFilter && "text-muted-foreground")}>
                                     {teamLeadFilter
-                                        ? teamLeads.find((user) => user.name === teamLeadFilter)?.name
+                                        ? teamLeads?.find((user) => user.name === teamLeadFilter)?.name
                                         : "Select Team Lead"}
                                 </span>
                                 <ChevronDownIcon
@@ -106,13 +115,12 @@ export default function TeamForm({ teamLeads }: { teamLeads: Omit<User, 'created
                                 <CommandList>
                                     <CommandEmpty>No framework found.</CommandEmpty>
                                     <CommandGroup>
-                                        {teamLeads.map((user, idx) => (
+                                        {teamLeads?.map((user, idx) => (
                                             <CommandItem
                                                 key={idx}
                                                 value={user.name}
                                                 onSelect={(currentValue) => {
                                                     setTeamLeadFilter(currentValue === teamLeadFilter ? "" : currentValue)
-                                                    setOpen(false)
                                                     setTeamLeadId(user.id)
                                                 }}
                                             >

@@ -8,18 +8,19 @@ import {
 } from "@/components/ui/table"
 import { db } from "@/db";
 import { teamMembers, teams as teamsTable, users } from "@/db/schema";
-import { eq, like } from "drizzle-orm";
+import { asc, count, eq, like } from "drizzle-orm";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { EyeIcon } from "lucide-react";
 
+import TeamPagination from "./team-pagination";
 
 
 
-export default async function TeamList({ searchParams }: { searchParams: Promise<{ teamName: string }> }) {
-    const { teamName } = await searchParams
+export default async function TeamList({ searchParams }: { searchParams: Promise<{ teamName: string, page: number, pageSize: number }> }) {
+    const { teamName, page, pageSize } = await searchParams
 
-    const query = db
+    const teams = await db
         .select({
             id: teamsTable.id,
             name: teamsTable.name,
@@ -27,16 +28,14 @@ export default async function TeamList({ searchParams }: { searchParams: Promise
             membersCount: db.$count(teamMembers, eq(teamMembers.teamId, teamsTable.id)),
         })
         .from(teamsTable)
-        .innerJoin(users, eq(teamsTable.teamLeadId, users.id));
+        .innerJoin(users, eq(teamsTable.teamLeadId, users.id))
+        .where(teamName ? like(teamsTable.name, `%${teamName}%`) : undefined)
+        .limit(Number(pageSize) || 5)
+        .offset((Number(page) - 1 || 0) * (Number(pageSize) || 5))
+        .orderBy(asc(teamsTable.id))
 
-    if (teamName) {
-        query.where(like(teamsTable.name, `%${teamName}%`));
-    }
-
-    query.orderBy(teamsTable.createdAt);
-
-    const teams = await query;
-
+    const [teamsCount] = await db.select({ count: count() }).from(teamsTable) || 0;
+    const totalPages = Math.ceil(teamsCount.count / pageSize);
 
     return (
         <div>
@@ -65,6 +64,7 @@ export default async function TeamList({ searchParams }: { searchParams: Promise
                     ))}
                 </TableBody>
             </Table>
+            <TeamPagination page={page} pageSize={pageSize} totalPages={totalPages} />
         </div>
     );
 }
